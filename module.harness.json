@@ -1,0 +1,34 @@
+{
+  "name": "invoicing",
+  "version": "1.0.0",
+  "description": "Invoice lifecycle — creation, sending, payment tracking, overdue management",
+  "category": "ops",
+  "entities": {
+    "produces": ["invoice", "payment"],
+    "consumes": ["client", "job", "estimate", "line-item"],
+    "extends": {}
+  },
+  "tools": [
+    { "name": "create-invoice", "description": "Create an invoice from an approved estimate", "permissions": ["estimate:read", "invoice:write", "line-item:read"] },
+    { "name": "send-invoice", "description": "Send an invoice to the client", "permissions": ["invoice:write", "client:read"] },
+    { "name": "record-payment", "description": "Record a payment against an invoice", "permissions": ["invoice:write", "payment:write"] }
+  ],
+  "hooks": [
+    { "event": "PostInvoiceSent", "action": "schedule-followup", "type": "post" },
+    { "event": "PaymentReceived", "action": "update-job-financials", "type": "post" }
+  ],
+  "dependencies": ["estimator"],
+  "externalServices": [
+    { "name": "quickbooks", "required": false },
+    { "name": "stripe", "required": false }
+  ],
+  "config": {
+    "payment_terms": { "type": "string", "default": "net30" },
+    "late_fee_percentage": { "type": "number", "default": 1.5 },
+    "progress_billing": { "type": "boolean", "default": false }
+  },
+  "agents": [],
+  "cron": [
+    { "name": "overdue-invoice-reminder", "schedule": "0 10 * * 1", "action": "send-reminders", "description": "Send reminder emails for overdue invoices weekly" }
+  ]
+}
